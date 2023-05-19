@@ -1,5 +1,4 @@
 from enum import StrEnum, auto
-from typing import Any
 from dataclasses import dataclass
 
 from error import InternalError, UserInputError
@@ -32,7 +31,7 @@ class Question:
 
         if self.q_type == QType.Short:
             return RespText(text)
-        elif self.q_type == QType.Choices or self.q_type == QType.LooseChoices:
+        if self.q_type in [QType.Choices, QType.LooseChoices]:
             assert self.data
             return RespChoice(text, choices=list(self.data))
         raise InternalError("Invalid Type")

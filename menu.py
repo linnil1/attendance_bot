@@ -3,16 +3,22 @@ from pprint import pprint
 
 from PIL import Image, ImageDraw, ImageFont
 from linebot import LineBotApi
-from linebot.models import RichMenu, RichMenuSize, RichMenuArea, RichMenuBounds, URIAction, MessageAction
+from linebot.models import (
+    RichMenu,
+    RichMenuSize,
+    RichMenuArea,
+    RichMenuBounds,
+    MessageAction,
+)
 
 import settings
-
 
 
 class Menu:
     """
     Menu object. Used for handle line's rich menu.
     """
+
     line_bot_api = LineBotApi(settings.line_token)
 
     def __init__(self, nrow: int, ncol: int, texts: list[str]):
@@ -25,28 +31,45 @@ class Menu:
         self.color_fg = (0, 0, 0)
         self.font_path = self.downloadFont()
         self.img, self.rich_menu = self.draw()
+        self.rich_menu_id: int | None = None
 
     def downloadFont(self) -> str:
         """Download font and set font's path"""
         font_path = "NotoSerifCJK-Medium.ttc"
         if not os.path.exists(font_path):
-            os.system(f"wget https://raw.githubusercontent.com/notofonts/noto-cjk/main/Serif/OTC/NotoSerifCJK-Medium.ttc -O {font_path}")
+            os.system(
+                f"wget https://raw.githubusercontent.com/notofonts/noto-cjk/main/Serif/OTC/NotoSerifCJK-Medium.ttc -O {font_path}"
+            )
         return font_path
 
     def draw(self) -> None:
         """Draw texts on menu and save into PIL Image and menu object"""
-        img  = Image.new(mode="RGBA", size=(self.ncol * self.col_size, self.nrow * self.row_size), color=self.color_bg)
+        img = Image.new(
+            mode="RGBA",
+            size=(self.ncol * self.col_size, self.nrow * self.row_size),
+            color=self.color_bg,
+        )
         draw = ImageDraw.Draw(img)
         fnt = ImageFont.truetype(self.font_path, 40)
         buttons = []
         for i, text in enumerate(self.texts):
-            x = (i %  self.ncol) * self.col_size
+            x = (i % self.ncol) * self.col_size
             y = (i // self.ncol) * self.row_size
-            draw.multiline_text((x + self.col_size * 0.5, y + self.row_size * 0.5), text, font=fnt, anchor="mm", fill=self.color_fg)
-            draw.rectangle([(x, y), (x + self.col_size, y + self.row_size)], outline=self.color_fg)
+            draw.multiline_text(
+                (x + self.col_size * 0.5, y + self.row_size * 0.5),
+                text,
+                font=fnt,
+                anchor="mm",
+                fill=self.color_fg,
+            )
+            draw.rectangle(
+                [(x, y), (x + self.col_size, y + self.row_size)], outline=self.color_fg
+            )
             buttons.append(
                 RichMenuArea(
-                    bounds=RichMenuBounds(x=x, y=y, width=self.col_size, height=self.row_size),
+                    bounds=RichMenuBounds(
+                        x=x, y=y, width=self.col_size, height=self.row_size
+                    ),
                     action=MessageAction(label=text, text=text),
                 )
             )
@@ -73,7 +96,7 @@ class Menu:
         # self.rich_menu_id = "richmenu-febab324bfe02ca56e3bc82541193dd4"
         # return
         print(self.rich_menu_id)
-        with open("menu.png", 'rb') as f:
+        with open("menu.png", "rb") as f:
             self.line_bot_api.set_rich_menu_image(self.rich_menu_id, "image/png", f)
 
     def setDeault(self) -> None:
@@ -86,35 +109,41 @@ class Menu:
 
 
 def listAllMenu():
+    """List menu of the app"""
     line_bot_api = LineBotApi(settings.line_token)
     pprint(line_bot_api.get_rich_menu_list())
     print(line_bot_api.get_default_rich_menu())
     # linnil1
-    # print(line_bot_api.get_rich_menu_id_of_user("Udb04a33910ef78f3b66da9da2cfeda89"))
+    # print(line_bot_api.get_rich_menu_id_of_user(settings.line_your_id))
 
 
 def clearAllMenu():
+    """Test: Clear current menu"""
     line_bot_api = LineBotApi(settings.line_token)
     for rich_menu in line_bot_api.get_rich_menu_list():
         # if rich_menu.rich_menu_id == "richmenu-febab324bfe02ca56e3bc82541193dd4":
         #     continue
         line_bot_api.delete_rich_menu(rich_menu.rich_menu_id)
-    line_bot_api.unlink_rich_menu_from_user("Udb04a33910ef78f3b66da9da2cfeda89")
+    line_bot_api.unlink_rich_menu_from_user(settings.line_your_id)
 
 
 if __name__ == "__main__":
     clearAllMenu()
-    menu = Menu(3, 3, [
-        "加入團隊",
-        "回報",
-        "新增團隊",
-        "列出團隊成員",
-        "踢除隊員",
-        "新增回報",
-        "檢視回報",
-        "結束回報",
-    ])
+    menu = Menu(
+        3,
+        3,
+        [
+            "加入團隊",
+            "回報",
+            "新增團隊",
+            "列出團隊成員",
+            "踢除隊員",
+            "新增回報",
+            "檢視回報",
+            "結束回報",
+        ],
+    )
     menu.save()
     menu.upload()
     menu.setDeault()
-    # menu.linkUser("Udb04a33910ef78f3b66da9da2cfeda89")
+    # menu.linkUser(settings.line_your_id)

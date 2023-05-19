@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from db import db_instance
 from error import UserInputError
 from question import Question, QType
+from base import Base
 
 
 if TYPE_CHECKING:
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from report import Report
 
 
-class User:
+class User(Base):
     """
     User object.
 
@@ -31,35 +31,26 @@ class User:
             [report-id]:
                 id: str
                 name: str
+                team: id
                 end: False
     ```
     """
 
-    db = db_instance
-
     def __init__(self, line_id: str):
+        super().__init__("user-" + line_id)
         self.line = line_id
-        self.id = "user-" + line_id
-        self._user: Any = None
+        self._default = {
+            "id": self.id,
+            "line": self.line,
+            "profile": {},
+            "teams": {},
+            "reports": {},
+        }
 
     @classmethod
-    def from_id(self, user_id: str) -> User:
+    def from_id(cls, user_id: str) -> User:
+        """Get user from app's ID not LINE ID"""
         return User(user_id[5:])
-
-    @property
-    def user(self) -> Any:
-        """Query DB if _user is None and init data if requires creation"""
-        if self._user is None:
-            self._user = self.db.get(self.id)
-        if self._user is None:
-            self._user = {
-                "id": self.id,
-                "line": self.line,
-                "profile": {},
-                "teams": {},
-                "reports": {},
-            }
-        return self._user
 
     def updateProfile(self, data: dict[str, str]) -> None:
         """
@@ -73,28 +64,23 @@ class User:
           'language': 'en'
         }
         """
-        self.user['profile'] = data
-        self.user['name'] = data['displayName']
-
-    def save(self) -> None:
-        """Save to DB"""
-        assert self._user
-        self.db.set(self.id, self._user)
+        self["profile"] = data
+        self["name"] = data["displayName"]
 
     def getName(self) -> str:
         """Get user name"""
-        return str(self.user.get("name", self.line))
+        return str(self.object.get("name", self.line))
 
     def join(self, team: "Team", admin: bool) -> None:
         """Join user into team"""
         role = "admin" if admin else "member"
-        if team.id in self.user["teams"]:
-            joined_team = self.user["teams"][team.id]
+        if team.id in self["teams"]:
+            joined_team = self["teams"][team.id]
             if role in joined_team["role"]:
                 raise UserInputError(f"You are already a team {role}")
             joined_team["role"].append(role)
         else:
-            self.user["teams"][team.id] = {
+            self["teams"][team.id] = {
                 "name": team.getName(),
                 "id": team.id,
                 "role": [role],
@@ -103,7 +89,7 @@ class User:
     def generateTeamQuestion(self, has_admin: bool) -> Question:
         """For chooseTeam"""
         buttons: dict[str, str] = {}
-        for team_id, team in self.user["teams"].items():
+        for team_id, team in self["teams"].items():
             if has_admin and "admin" not in team["role"]:
                 continue
             qid = f"({len(buttons)+1}) {team['name']}".strip()
@@ -117,11 +103,31 @@ class User:
         )
         return question
 
+    def updateReports(self) -> None:
+        """Replace updateUserForReport function"""
+        from team import Team
+
+        reports_dict = {}
+        for team_id in self["teams"]:
+            team = Team(team_id)
+            reports = team.listReport()
+            for report in reports:
+                reports_dict[report["id"]] = {
+                    "team": team.id,
+                    "team_name": team.getName(),
+                    "name": report["name"],
+                    "id": report["id"],
+                    "end": report["end"],
+                }
+        self["reports"] = reports_dict
+        self.save()
+
     def generateReportQuestion(self, filter_end: bool = False) -> Question:
         """For chooseReport"""
+        self.updateReports()
         buttons: dict[str, str] = {}
-        for report_id, report in self.user["reports"].items():
-            if filter_end and report['end']:
+        for report_id, report in self["reports"].items():
+            if filter_end and report["end"]:
                 continue
             qid = f"({len(buttons)+1}) {report['name']}".strip()
             buttons[qid] = report_id
@@ -136,7 +142,7 @@ class User:
 
     def addReport(self, report: "Report") -> None:
         """Add report for user"""
-        self.user["reports"][report.id] = {
+        self["reports"][report.id] = {
             "team": report.getTeam(),
             "name": report.getName(),
             "id": report.id,
@@ -144,15 +150,21 @@ class User:
         }
 
     def endReport(self, report: "Report") -> None:
-        """Add report for user"""
-        self.user["reports"][report.id]['end'] = True
+        """End report for user"""
+        print(self["reports"])
+        self["reports"][report.id]["end"] = True
 
+    def hasAdminReport(self, report_id: str) -> bool:
+        """Is the user has the admin of report (related by team)"""
+        team_id = self["reports"][report_id]["team"]
+        return "admin" in self["teams"][team_id]["role"]
 
     def leaveTeam(self, team: "Team") -> None:
-        del self.user["teams"][team.id]
+        """User leave the team"""
+        del self["teams"][team.id]
         report_ids = []
-        for report_id, report in self.user["reports"].items():
+        for report_id, report in self["reports"].items():
             if report["team"] == team.id:
                 report_ids.append(report_id)
         for report_id in report_ids:
-            del self.user["reports"][report_id]
+            del self["reports"][report_id]

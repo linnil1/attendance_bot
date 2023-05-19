@@ -8,11 +8,12 @@ from team import Team
 from talk import Talk
 from report import Report
 from error import TalkInterrupt, UserInputError
-from response import RespText, RespChoice
-from question import Question, QType, createShortQuestion
+from response import RespText
+from question import Question, QType
+import settings
 
 # can this import be removed from here
-from linebot.models import TextSendMessage
+from linebot.models import TextSendMessage  # type: ignore
 
 
 @dataclasses.dataclass
@@ -27,7 +28,8 @@ class Context:
     line_bot_api: Any
 
     def getQuestion(self, key: str, prefix: str = "") -> Question:
-        key_q = "question-" + prefix + key 
+        """Get question Object"""
+        key_q = "question-" + prefix + key
         return Question(**self.talk.get(key_q))
 
     def ask(self, question: Question, prefix: str = "", clear: bool = False) -> str:
@@ -97,18 +99,19 @@ class Context:
             talk.set("continue_text_list", text_list)
 
     def updateUserProfile(self, user: User) -> None:
+        """Call LINE Profile API to get user's profile"""
         if not self.line_bot_api:
             return
-        print("HI", user.line)
         profile = self.line_bot_api.get_profile(user.line)
         user.updateProfile(profile.as_json_dict())
 
     def notifyReportAll(self, report: Report, text: str) -> None:
+        """Notify all users in the team of the report"""
         if not self.line_bot_api:
             return
         team = Team(report.getTeam())
         users = team.listUsers()
-        line_ids = [user['line'] for user in users]
+        line_ids = [user["line"] for user in users]
         self.line_bot_api.multicast(line_ids, TextSendMessage(text=text))
 
 
@@ -150,7 +153,9 @@ class App:
 
         return wrap
 
-    def handle(self, line_id: str, text: str, event: Any = None, line_bot_api: Any = None) -> RespText:
+    def handle(
+        self, line_id: str, text: str, event: Any = None, line_bot_api: Any = None
+    ) -> RespText:
         """
         Define how to handle the message:
         1. Continue talk state (if saved)
@@ -183,12 +188,13 @@ class App:
                 self.logger.debug(f"bot: {result}")
                 return result
             # error
-            else:
-                return RespText("Error")
+            return RespText("Error")
         except TalkInterrupt as e:
             self.logger.debug(f"bot: ask {e.resp}")
             return e.resp
-        # except UserInputError as e:
-        #     self.logger.debug(f"Error: {e.args[0]}")
-        #     context.talk.clear()
-        #     return RespText(e.args[0])
+        except UserInputError as e:
+            self.logger.debug(f"Error: {e.args[0]}")
+            context.talk.clear()
+            if settings.mode == "test":
+                raise e
+            return RespText(e.args[0])

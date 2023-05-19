@@ -1,1 +1,6 @@
 *.swp
+__pycache__/
+*.png
+NotoSerifCJK-Medium.ttc
+settings.py
+redis_data

@@ -8,8 +8,6 @@ if TYPE_CHECKING:
 class AttendanceError(Exception):
     """Basic error type"""
 
-    pass
-
 
 class TalkInterrupt(AttendanceError):
     """Raise this when bot requires user to answer question before processing"""
@@ -21,10 +19,6 @@ class TalkInterrupt(AttendanceError):
 class UserInputError(AttendanceError):
     """User does wrong command"""
 
-    pass
-
 
 class InternalError(AttendanceError):
     """I did wrong command"""
-
-    pass

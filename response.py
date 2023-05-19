@@ -27,16 +27,16 @@ def jsonToText(data: Any, indent: int = 0) -> str:
     """Json -> flatten txt"""
     if isinstance(data, (int, str)):
         return str(data)
-    elif isinstance(data, datetime):
+    if isinstance(data, datetime):
         return data.strftime("%Y/%m/%d %H:%M")
-    elif isinstance(data, dict):
+    if isinstance(data, dict):
         txt = ""
         for key, value in data.items():
             txt += "\n"
             txt += " " * indent + str(key) + ": "
             txt += jsonToText(value, indent + 2)
         return txt
-    elif isinstance(data, (list, tuple)):
+    if isinstance(data, (list, tuple)):
         txt = ""
         count = len(data)
         for rank, value in enumerate(data):
@@ -51,5 +51,4 @@ def jsonToText(data: Any, indent: int = 0) -> str:
                 txt += jsonToText(value, indent + 2)
                 txt += "\n"
         return txt
-    else:
-        raise ValueError
+    raise ValueError

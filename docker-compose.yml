@@ -1,12 +1,14 @@
 version: '3'
 services:
   line:
-    # image: localhost/linnil1/attendence_bot
-    image: linnil1/att
+    image: linnil1/attendence_bot
+    build: .
+    ports:
+      - 10101:10101
     restart: always
     volumes:
       - ./:/app
-    command: tail -f /dev/null
+    command: python line.py
     depends_on:
       - redis
 

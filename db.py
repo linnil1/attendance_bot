@@ -4,6 +4,7 @@ import logging
 import uuid
 
 # for redis
+from pottery import Redlock
 from redis import Redis
 import orjson
 
@@ -31,6 +32,15 @@ class KVData:
         self.logger.debug(f"Set {key}={pformat(value)}")
         self.data[key] = value
 
+    def gets(self, keys: list[str]) -> list[Any]:
+        """Get Data by keys"""
+        return [self.get(key) for key in keys]
+
+    def sets(self, key_values: list[tuple[str, Any]]) -> None:
+        """Set data by keys and values"""
+        for key, value in key_values:
+            self.set(key, value)
+
     def delete(self, key: str) -> None:
         """Delete key"""
         self.logger.debug(f"Delete {key}")
@@ -48,7 +58,8 @@ class KVData:
         """Remove all data"""
         self.data = {}
 
-
+    def lock(self, key: str) -> None:
+        """Not implement"""
 
 
 class RedisDB:
@@ -61,12 +72,16 @@ class RedisDB:
     def __init__(self) -> None:
         """Connect to redis instance"""
         self.redis = Redis.from_url(settings.redis_url, decode_responses=True)
-        if settings.mode == "test":
-            self.clear()
 
     def clear(self) -> None:
         """Remove all data"""
         self.redis.flushall()
+
+    def lock(self, key: str) -> Redlock:
+        """Block the execution depended on the key"""
+        lock = Redlock(key=key, masters={self.redis}, auto_release_time=0.5)
+        lock.acquire()
+        return lock
 
     def get(self, key: str, default: Any | None = None) -> Any:
         """Get Data by key"""
@@ -79,8 +94,20 @@ class RedisDB:
 
     def set(self, key: str, value: Any) -> None:
         """Set data by key"""
-        raw_value = self.redis.set(key, orjson.dumps(value))
-        self.logger.debug(f"Set {key}={pformat(value)}")
+        self.redis.set(key, orjson.dumps(value))
+        self.logger.debug(f"Set {key}=\n{pformat(value)}")
+
+    def gets(self, keys: list[str]) -> list[Any]:
+        """Get Data by keys"""
+        pipe = self.redis.pipeline()
+        [pipe.get(key) for key in keys]
+        return [orjson.loads(raw_value) for raw_value in pipe.execute()]
+
+    def sets(self, key_values: list[tuple[str, Any]]) -> None:
+        """Set data by keys and values"""
+        pipe = self.redis.pipeline()
+        [pipe.set(key, orjson.dumps(value)) for key, value in key_values]
+        pipe.execute()
 
     def delete(self, key: str) -> None:
         """Delete key"""
@@ -98,3 +125,5 @@ class RedisDB:
 
 # db_instance = KVData()
 db_instance = RedisDB()
+if settings.mode == "test":
+    db_instance.clear()

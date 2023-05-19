@@ -26,6 +26,7 @@ logger = logging.getLogger("attendence.line")
 
 @app.route("/callback", methods=["POST"])
 async def callback():
+    """Flask -> LINE message"""
     # get X-Line-Signature header value
     signature = request.headers["X-Line-Signature"]
     # get request body as text
@@ -43,12 +44,13 @@ async def callback():
 
 
 @handler.add(MessageEvent, message=TextMessage)
-def lineHandle(event):
+def lineHandle(event: MessageEvent):
+    """LINE message -> My Handling"""
     logger.debug(str(event))
     line_id = event.source.user_id
     # line_id = "linnil1_admin"
     text = event.message.text
-    event = event
+    # event = event
 
     resp = attendence_app.handle(line_id, text, event, line_bot_api=line_bot_api)
 
@@ -75,28 +77,13 @@ def lineHandle(event):
 
 
 if __name__ == "__main__":
-    app_web = app
-    app = attendence_app
-
     # init for testing
-    admin_user = "Udb04a33910ef78f3b66da9da2cfeda89"
-    normal_user = "Udb04a33910ef78f3b66da9da2cfeda89"
-    app.handle(admin_user, "create team")
-    app.handle(admin_user, "Test_team1")
-    app.handle(admin_user, "電話")
-    t = app.handle(admin_user, "結束")
-
-    import re
-    user, admin = re.findall(r"(token-.*)", t.text)
-    app.handle(normal_user, "join team")
-    app.handle(normal_user, user)
-    app.handle(normal_user, "0966")
-
-    app.handle(admin_user, "create report")
-    app.handle(admin_user, "repott1")
-    app.handle(admin_user, "地點")
-    app.handle(admin_user, "結束")
-
-    # end init for testing
-    app = app_web
-    app.run(host="0.0.0.0", port=settings.port, debug=True)
+    # app_web = app
+    # app = attendence_app
+    # admin_user = settings.line_your_id
+    # app.handle(admin_user, "create team")
+    # app.handle(admin_user, "Test_team1")
+    # app.handle(admin_user, "電話")
+    # app.handle(admin_user, "結束")
+    # app = app_web
+    app.run(host="0.0.0.0", port=settings.port, debug=settings.mode == "test")
