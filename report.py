@@ -7,7 +7,6 @@ from base import Base
 
 
 if TYPE_CHECKING:
-    from user import User
     from team import Team
 
 
@@ -55,11 +54,19 @@ class Report(Base):
         """Get report name"""
         return str(self["team"])
 
-    def addResponse(self, user: "User", result: Any) -> None:
+    def generateQuestion(self) -> list[Question]:
+        """Create join question object"""
+        return [Question(**q) for q in self["questions"]]
+
+    def getMemberResponse(self, user_id: str) -> Any:
+        """Get response data of the user"""
+        return self["users"].get(user_id, {})
+
+    def addResponse(self, user_id: str, result: Any) -> None:
         """User response to report and save here"""
         if self["end"]:
             raise UserInputError("This report is already closed")
-        self["users"][user.id] = result
+        self["users"][user_id] = result
 
     def end(self) -> None:
         """End the report"""

@@ -35,9 +35,9 @@ def test_app():
     # join team (user)
     app.handle("linnil1_user", "join team")
     app.handle("linnil1_user", token_user)
-    app.handle("linnil1_user", "0966")
+    app.handle("linnil1_user", "123")
     app.handle("linnil1_user", "linnil1_user_name")
-    t = app.handle("linnil1_user", "123")
+    t = app.handle("linnil1_user", "0966")
     assert "已成功加" in t.text
 
     # join team (multiple user)
@@ -54,6 +54,7 @@ def test_app():
         app.handle("linnil1_user", "list member")
     t = app.handle("linnil1_admin", "list member")
     assert "0. " in t.text
+    assert "10. " in t.text
 
     # create report
     with pytest.raises(UserInputError):
@@ -69,6 +70,13 @@ def test_app():
 
     # response report
     app.handle("linnil1_user", "response report")
+    app.handle("linnil1_user", "not at home")
+    app.handle("linnil1_user", "no")
+    t = app.handle("linnil1_user", "yes")
+    assert "time" in t.text
+
+    # response report (twice)
+    app.handle("linnil1_user", "response report")
     app.handle("linnil1_user", "at home")
     app.handle("linnil1_user", "no")
     t = app.handle("linnil1_user", "yes")
@@ -79,6 +87,17 @@ def test_app():
     t = app.handle("linnil1_admin", "全部")
     assert "1. " in t.text
 
+    # inspect report (admin)
+    t = app.handle("linnil1_admin", "inspect report")
+    assert isinstance(t, RespChoice)
+    t = app.handle("linnil1_admin", "包含")
+    assert isinstance(t, RespChoice)
+    app.handle("linnil1_admin", "姓名")
+    t = app.handle("linnil1_admin", "linnil1_user_name")
+    assert "1. " not in t.text
+    assert "0. " in t.text
+
+    # inspect report (user)
     t = app.handle("linnil1_user", "inspect report")
     assert "1. " not in t.text
     assert "0. " in t.text
@@ -88,6 +107,35 @@ def test_app():
         app.handle("linnil1_user", "end report")
     t = app.handle("linnil1_admin", "end report")
     assert "已結束" in t.text
+
+    # response to ended report
+    with pytest.raises(UserInputError):
+        app.handle("linnil1_user", "response report")
+
+    # double join
+    app.handle(f"linnil1_user000", "join team")
+    app.handle(f"linnil1_user000", token_user)
+    app.handle(f"linnil1_user000", "1")
+    app.handle(f"linnil1_user000", "2")
+    with pytest.raises(UserInputError):
+        t = app.handle(f"linnil1_user000", "3")
+
+    # kick member
+    app.handle("linnil1_admin", "kick member")
+    t = app.handle("linnil1_admin", "4")
+    assert "linnil1_user000" in t.text
+
+    # join after kick
+    app.handle(f"linnil1_user000", "join team")
+    app.handle(f"linnil1_user000", token_user)
+    app.handle(f"linnil1_user000", "0966")
+    app.handle(f"linnil1_user000", f"name000")
+    t = app.handle(f"linnil1_user000", "123")
+    assert "已成功加" in t.text
+
+    # leave team
+    t = app.handle(f"linnil1_user000", "leave team")
+    assert "離開" in t.text
 
 
 def test_two_team():

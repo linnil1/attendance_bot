@@ -159,12 +159,12 @@ class User(Base):
         team_id = self["reports"][report_id]["team"]
         return "admin" in self["teams"][team_id]["role"]
 
-    def leaveTeam(self, team: "Team") -> None:
+    def leaveTeam(self, team_id: str) -> None:
         """User leave the team"""
-        del self["teams"][team.id]
+        del self["teams"][team_id]
         report_ids = []
         for report_id, report in self["reports"].items():
-            if report["team"] == team.id:
+            if report["team"] == team_id:
                 report_ids.append(report_id)
         for report_id in report_ids:
             del self["reports"][report_id]

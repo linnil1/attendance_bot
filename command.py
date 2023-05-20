@@ -1,4 +1,5 @@
 from typing import Callable, Any
+from datetime import datetime
 
 from user import User
 from team import Team, Token
@@ -77,7 +78,6 @@ def joinTeam(user: User, context: Context) -> RespText:
         raise UserInputError("Token 不正確")
         # raise UserInputError("Invalid Token")
 
-    team = Team(token.data["id"])
     if token.action == "add_user_to_team_admin":
         admin = True
     elif token.action == "add_user_to_team_member":
@@ -86,6 +86,7 @@ def joinTeam(user: User, context: Context) -> RespText:
         raise UserInputError("Token 不正確")
         # raise UserInputError("Invalid Token")
 
+    team = Team(token.data["id"])
     userJoinTeam(user, team, admin=admin, context=context)
     data = {
         "已成功加入": team.getName(),
@@ -142,9 +143,21 @@ def kickMember(user: User, context: Context) -> RespText:
     team.kickUser(user_id)
     team.save()
     kicked_user = User.from_id(user_id)
-    kicked_user.leaveTeam(team)
+    kicked_user.leaveTeam(team.id)
     kicked_user.save()
-    return jsonToRespText({"kick": User(user_id).getName()})
+    return jsonToRespText({"踢除": User(user_id).getName()})
+
+
+@app.addCommand(keywords=["leave team", "離開團隊"])
+def leaveTeam(user: User, context: Context) -> RespText:
+    """Command: leave team"""
+    team_id = chooseTeam(context, user, has_admin=False)
+    team = Team(team_id)
+    team.kickUser(user.id)
+    team.save()
+    user.leaveTeam(team.id)
+    user.save()
+    return jsonToRespText({"離開": team.getName()})
 
 
 def updateUserForReport(team: Team, report: Report, status: str) -> None:
@@ -189,15 +202,17 @@ def createReport(user: User, context: Context) -> RespText:
 def responseReport(user: User, context: Context) -> RespText:
     """Command: User response the report"""
     report_id = chooseReport(context, user)
-    report = Report(report_id)
 
-    questions = [Question(**q) for q in report["questions"]]
+    report = Report(report_id)
+    questions = report.generateQuestion()
     result = context.askMany(questions, prefix="xxx-")
+    result["time"] = datetime.now()  # type: ignore
+
     history = History(report.id, user.id)
     history.addResponse(result)
     history.save()
     report.block()
-    report.addResponse(user, result)
+    report.addResponse(user.id, result)
     report.save()
     return jsonToRespText(
         {
@@ -232,8 +247,11 @@ def inspectReport(user: User, context: Context) -> RespText:
                     key="item",
                     title="對象",
                     data={
-                        q["title"]: q["title"]
-                        for q in (*report["questions"], *team["join_questions"])
+                        q.title: q.title
+                        for q in (
+                            *report.generateQuestion(),
+                            *team.generateJoinQuestion(),
+                        )
                     },
                 )
             )
@@ -247,16 +265,20 @@ def inspectReport(user: User, context: Context) -> RespText:
     report = Report(report_id)
     team = Team(report.getTeam())
     if user.hasAdminReport(report_id):
-        users_id = set(report["users"]) | set(team["users"])
+        users_id = set(report["users"]) | set(i['id'] for i in team.listUsers())
     else:
         # user inspect itself
         users_id = set([user.id])
     users = [
-        {"name": team["users"][user_id]["name"], **report["users"].get(user_id, {})}
+        {
+            "line": team["users"][user_id]["name"],
+            **team.getMemberInfo(user_id),
+            **report.getMemberResponse(user_id),
+        }
         for user_id in users_id
     ]
     users = [u for u in users if filter_func(u)]
-    users = sorted(users, key=lambda i: i["name"])  # type: ignore
+    users = sorted(users, key=lambda i: i["line"])  # type: ignore
     return jsonToRespText(list(users))
 
 
@@ -272,6 +294,7 @@ def endReport(user: User, context: Context) -> RespText:
 
     team = Team(report.getTeam())
     team.endReport(report.id)
+    team.save()
     # updateUserForReport(team, report, status="end")
     context.notifyReportAll(report, f"{report['team_name']} ㄉ {report.getName()} 已結束")
     return RespText(f"{report.getName()} 已結束")

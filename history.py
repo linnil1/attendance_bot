@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import Any
-from datetime import datetime
 
 from base import Base
 
@@ -29,5 +28,4 @@ class History(Base):
 
     def addResponse(self, data: Any) -> None:
         """User response to the report and save here"""
-        data["time"] = datetime.now()
         self["history"].append(data)

@@ -111,6 +111,7 @@ class Team(Base):
             joined_user = self["users"][user.id]
             if role in joined_user["role"]:
                 raise UserInputError("You are already a team {role}")
+            joined_user["leave"] = False
             joined_user["role"].append(role)
         else:
             self["users"][user.id] = {
@@ -119,12 +120,16 @@ class Team(Base):
                 "line": user.line,
                 "role": [role],
                 "question": {},
-                "kick": False,
+                "leave": False,
             }
 
         if role == "member":
             assert member_info
             self["users"][user.id]["question"].update(member_info)
+
+    def getMemberInfo(self, user_id: str) -> Any:
+        """Get memeber info of the user"""
+        return self["users"][user_id]["question"]
 
     def generateJoinQuestion(self) -> list[Question]:
         """Create join question object"""
@@ -155,11 +160,12 @@ class Team(Base):
     def kickUser(self, user_id: str) -> None:
         """Kick user from team"""
         # Should I mark as kicked
-        self["users"][user_id]["kick"] = True
+        self["users"][user_id]["leave"] = True
+        self["users"][user_id]["role"] = []
 
     def listUsers(self) -> list[Any]:
         """List all users"""
-        return [u for u in self["users"].values() if not u["kick"]]
+        return [u for u in self["users"].values() if not u["leave"]]
 
     def getUser(self, user_id: str) -> Any:
         """Get User data in team"""

@@ -28,6 +28,4 @@ docker compose up -d
 
 ## Demo
 
-![demo](https://raw.githubusercontent.com/linnil1/attendance_bot/main/demo.jpg)
-
-
+![demo](https://github.com/linnil1/attendance_bot/blob/main/demo.jpg?raw=true)
