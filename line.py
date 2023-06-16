@@ -17,7 +17,6 @@ from command import app as attendence_app
 from response import RespText, RespChoice
 import settings
 
-
 app = Flask(__name__)
 line_bot_api = LineBotApi(settings.line_token)
 handler = WebhookHandler(settings.line_webhook)

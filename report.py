@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, TYPE_CHECKING
+from dataclasses import asdict
 
 from question import Question
 from error import UserInputError
@@ -42,7 +43,7 @@ class Report(Base):
                 "team": team.id,
                 "team_name": team.getName(),
                 "users": {},
-                "questions": questions,  # orjson serialize dataclass by asdict
+                "questions": [asdict(i) for i in questions],
             },
         )
 

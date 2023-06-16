@@ -265,7 +265,7 @@ def inspectReport(user: User, context: Context) -> RespText:
     report = Report(report_id)
     team = Team(report.getTeam())
     if user.hasAdminReport(report_id):
-        users_id = set(report["users"]) | set(i['id'] for i in team.listUsers())
+        users_id = set(report["users"]) | set(i["id"] for i in team.listUsers())
     else:
         # user inspect itself
         users_id = set([user.id])

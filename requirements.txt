@@ -1,3 +1,8 @@
 line-bot-sdk
 flask[async]
 pillow
+orjson
+redis
+pottery
+boto3
+python_dynamodb_lock

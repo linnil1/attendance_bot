@@ -53,8 +53,8 @@ class Base:
         """Save to DB"""
         assert self._object
         self.db.set(self.id, self._object)
-        if self.lock and self.lock.locked():
-            self.lock.release()
+        if self.lock and self.db.isLock(self.lock):
+            self.db.release(self.lock)
         self.lock = None
 
     def block(self) -> None:

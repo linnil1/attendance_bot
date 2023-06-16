@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, TYPE_CHECKING
+from dataclasses import asdict
 
 from base import Base
 from error import UserInputError
@@ -87,7 +88,7 @@ class Team(Base):
             "team-",
             {
                 "name": name,
-                "join_questions": questions,  # [asdict(i) for i in questions],
+                "join_questions": [asdict(i) for i in questions],
                 "users": {},
                 "reports": {},
             },

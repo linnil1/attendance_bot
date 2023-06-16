@@ -66,6 +66,15 @@ class KVData:
     def lock(self, key: str) -> None:
         """Not implement"""
 
+    @classmethod
+    def isLock(cls, lock: Any) -> bool:
+        """Lock status"""
+        return False
+
+    @classmethod
+    def release(cls, lock: Any) -> None:
+        """Release lock"""
+
 
 class RedisDB:
     """
@@ -87,6 +96,16 @@ class RedisDB:
         lock = Redlock(key=key, masters={self.redis}, auto_release_time=0.5)
         lock.acquire()
         return lock
+
+    @classmethod
+    def isLock(cls, lock: Redlock) -> bool:
+        """Lock status"""
+        return bool(lock.locked())
+
+    @classmethod
+    def release(cls, lock: Redlock) -> None:
+        """Release lock"""
+        lock.release()
 
     def get(self, key: str, default: Any | None = None) -> Any:
         """Get Data by key"""
