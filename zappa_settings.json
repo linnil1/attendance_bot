@@ -1,0 +1,12 @@
+{
+    "dev": {
+        "app_function": "line.app",
+        "profile_name": null,
+        "project_name": "attendence",
+        "runtime": "python3.11",
+        "s3_bucket": "attendence-tmp",
+        "tags": {
+            "proejct": "attendence"
+        }
+    }
+}

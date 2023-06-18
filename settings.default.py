@@ -14,7 +14,7 @@ line_webhook = ""
 line_your_id = ""  # your lineID (mostly for testing)
 port = 10101
 mode = "prod"  # "prod", "test"
-db = "object"  # "redis" "object" "dynamodb"
+db = "redis"  # "redis" "object" "dynamodb"
 
 # redis
 redis_url = f"redis://redis:6379/attendence-{mode}"
